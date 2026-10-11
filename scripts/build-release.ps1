@@ -48,7 +48,7 @@ New-Item -ItemType Directory -Path $RuntimeRoot -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $ExtractedNodeRoot 'node.exe') -Destination $RuntimeRoot
 Copy-Item -LiteralPath (Join-Path $ExtractedNodeRoot 'LICENSE') -Destination $RuntimeRoot
 
-foreach ($Name in @('package.json', 'package-lock.json', 'README.md', 'THIRD-PARTY-NOTICES.txt')) {
+foreach ($Name in @('package.json', 'package-lock.json', 'README.md', 'LICENSE', 'THIRD-PARTY-NOTICES.txt')) {
     Copy-Item -LiteralPath (Join-Path $ProjectRoot $Name) -Destination $ReleaseRoot
 }
 foreach ($Name in @('src', 'scripts')) {
