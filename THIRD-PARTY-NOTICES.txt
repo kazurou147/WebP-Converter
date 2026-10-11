@@ -1,0 +1,6 @@
+WebP Folder Converter - Third-Party Notices
+
+The self-contained release builder replaces this file with a versioned list of
+the bundled Node.js runtime, Sharp, libvips and other production dependencies.
+Individual license texts are copied into the release's runtime and licenses
+directories. No third-party runtime is bundled in the source tree itself.
