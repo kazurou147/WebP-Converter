@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -60,6 +61,9 @@ test('Inno Setup設定は固定パス、非管理者、Windows 11 x64、HKCU専�
   assert.match(source, /OutputBaseFilename=WebP-Converter-Setup-\{#AppVersion\}/u);
   assert.match(source, /Root: HKCU; Subkey: "Software\\Classes\\Directory\\shell\\WebPFolderConverter"/u);
   assert.match(source, /Flags: uninsdeletekey/u);
+  assert.match(source, /Source: "v1\.0\.0-installed-manifest\.json"; Flags: dontcopy/u);
+  assert.match(source, /-TrustedManifestPath/u);
+  assert.match(source, /RaiseException\('v1\.0\.0からの更新を確定できませんでした/u);
   assert.doesNotMatch(source, /Root: HKLM/u);
   assert.doesNotMatch(source, /Type: filesandordirs/u);
   assert.doesNotMatch(source, /\{localappdata\}\\WebPFolderConverter\\logs/u);
@@ -67,13 +71,37 @@ test('Inno Setup設定は固定パス、非管理者、Windows 11 x64、HKCU専�
 
 test('移行ヘルパーは正規v1.0.0だけを退避し固定パス以外を拒否する', async () => {
   const source = await read('scripts/installer-migration.ps1');
-  assert.match(source, /Package\.version -ne '1\.0\.0'/u);
+  const trustedManifest = parseJson(await read('installer/v1.0.0-installed-manifest.json'));
+  assert.match(source, /TrustedManifest\.version -ne '1\.0\.0'/u);
   assert.match(source, /Assert-ExactPath -Actual \$InstallDir/u);
   assert.match(source, /phase = 'backing-up'/u);
   assert.match(source, /\$State\.phase = 'prepared'/u);
+  assert.match(source, /\$State\.phase = 'restoring-files'/u);
+  assert.match(source, /\$State\.phase = 'restoring-registry'/u);
+  assert.match(source, /Remove-IncompleteUninstallRegistration/u);
+  assert.match(source, /Assert-TrustedLegacyInstall/u);
   assert.match(source, /'prepared' \{ Restore-LegacyInstall/u);
   assert.match(source, /Move-Item -LiteralPath \$BackupDir -Destination \$InstallDir/u);
   assert.doesNotMatch(source, /Remove-Item[^\r\n]+\*/u);
+  assert.equal(trustedManifest.version, '1.0.0');
+  assert.equal(trustedManifest.nodeVersion, '24.21.0');
+  assert.equal(trustedManifest.sharpVersion, '0.35.5');
+  assert.equal(trustedManifest.files.length, 182);
+});
+
+test('移行と復旧の状態遷移を一時フォルダと隔離レジストリで検証する', { timeout: 120_000 }, () => {
+  const windowsPowerShell = path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+  const result = spawnSync(windowsPowerShell, [
+    '-NoProfile',
+    '-ExecutionPolicy', 'Bypass',
+    '-File', path.join(projectRoot, 'test', 'installer-migration.integration.ps1'),
+  ], {
+    cwd: projectRoot,
+    encoding: 'utf8',
+    windowsHide: true,
+  });
+  assert.equal(result.status, 0, `移行統合テストに失敗しました。\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`);
+  assert.equal((result.stdout.match(/PASS:/gu) ?? []).length, 8, `全8シナリオが成功していません。\n${result.stdout}`);
 });
 
 test('作成済みリリースのマニフェストは全ファイルのSHA-256と一致する', async (context) => {

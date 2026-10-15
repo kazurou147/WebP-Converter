@@ -65,6 +65,7 @@ Source: "{#SourceRoot}\node_modules\*"; DestDir: "{app}\node_modules"; Flags: ig
 Source: "{#SourceRoot}\licenses\*"; DestDir: "{app}\licenses"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#SourceRoot}\scripts\invoke.ps1"; DestDir: "{app}"; DestName: "invoke.ps1"; Flags: ignoreversion
 Source: "{#SourceRoot}\scripts\installer-migration.ps1"; Flags: dontcopy
+Source: "v1.0.0-installed-manifest.json"; Flags: dontcopy
 
 [Registry]
 Root: HKCU; Subkey: "Software\Classes\Directory\shell\WebPFolderConverter"; ValueType: string; ValueName: ""; ValueData: "WebPに変換"; Flags: uninsdeletekey
@@ -101,13 +102,15 @@ var
   Parameters: String;
 begin
   ExtractTemporaryFile('installer-migration.ps1');
+  ExtractTemporaryFile('v1.0.0-installed-manifest.json');
   Parameters := '-NoProfile -ExecutionPolicy Bypass -File ' +
     AddQuotes(ExpandConstant('{tmp}\installer-migration.ps1')) +
     ' -Action ' + ActionName +
     ' -InstallDir ' + AddQuotes(ExpandConstant('{app}')) +
     ' -BackupDir ' + AddQuotes(LegacyBackupPath) +
     ' -StatePath ' + AddQuotes(MigrationStatePath) +
-    ' -UninstallRegistryPath ' + AddQuotes(UninstallRegistryPath);
+    ' -UninstallRegistryPath ' + AddQuotes(UninstallRegistryPath) +
+    ' -TrustedManifestPath ' + AddQuotes(ExpandConstant('{tmp}\v1.0.0-installed-manifest.json'));
   Result := Exec(
     ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
     Parameters, '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
@@ -138,12 +141,12 @@ var
 begin
   if CurStep = ssPostInstall then
   begin
-    InstallCommitted := True;
     if LegacyMigrationPrepared then
     begin
       if (not RunMigrationHelper('Commit', ResultCode)) or (ResultCode <> 0) then
-        Log('WARNING: The v1.0.0 migration backup could not be cleaned up. It will be resolved on the next setup run.');
+        RaiseException('v1.0.0からの更新を確定できませんでした。旧バージョンを復元します。');
     end;
+    InstallCommitted := True;
   end;
 end;
 

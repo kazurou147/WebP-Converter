@@ -28,11 +28,11 @@ function Resolve-IsccPath {
     $Command = Get-Command iscc.exe -ErrorAction SilentlyContinue
     if ($Command) { return $Command.Source }
 
-    $Candidates = @(
-        (Join-Path $env:ProgramFiles 'Inno Setup 7\ISCC.exe'),
-        (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 7\ISCC.exe'),
-        (Join-Path $env:USERPROFILE 'AppData\Local\Programs\Inno Setup 7\ISCC.exe')
-    ) | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Leaf) }
+    $Candidates = @(@(
+            (Join-Path $env:ProgramFiles 'Inno Setup 7\ISCC.exe'),
+            (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 7\ISCC.exe'),
+            (Join-Path $env:USERPROFILE 'AppData\Local\Programs\Inno Setup 7\ISCC.exe')
+        ) | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Leaf) })
     if ($Candidates.Count -gt 0) { return $Candidates[0] }
 
     throw (@(
@@ -44,7 +44,8 @@ function Resolve-IsccPath {
 
 $Compiler = Resolve-IsccPath -RequestedPath $IsccPath
 $CompilerVersion = (& $Compiler --version | Select-Object -First 1).Trim()
-if ($LASTEXITCODE -ne 0 -or -not $CompilerVersion.StartsWith('7.1.0', [StringComparison]::OrdinalIgnoreCase)) {
+if (($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) -or
+    -not $CompilerVersion.StartsWith('7.1.0', [StringComparison]::OrdinalIgnoreCase)) {
     throw "再現ビルドにはInno Setup 7.1.0が必要です。検出バージョン: $CompilerVersion ($Compiler)"
 }
 
@@ -65,7 +66,7 @@ foreach ($Path in @($OutputPath, $ChecksumPath)) {
 }
 
 & $Compiler "/DAppVersion=$AppVersion" "/DSourceRoot=$PayloadRoot" "/DOutputDir=$OutputRoot" $InstallerSource
-if ($LASTEXITCODE -ne 0) { throw 'Inno Setupによるコンパイルに失敗しました。' }
+if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) { throw 'Inno Setupによるコンパイルに失敗しました。' }
 if (-not (Test-Path -LiteralPath $OutputPath -PathType Leaf)) {
     throw "期待するインストーラーが生成されませんでした: $OutputPath"
 }
