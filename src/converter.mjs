@@ -18,7 +18,7 @@ import { randomBytes } from 'node:crypto';
 import sharp from 'sharp';
 
 export const TOOL_NAME = 'WebP Folder Converter';
-export const TOOL_VERSION = '1.0.0';
+export const TOOL_VERSION = '1.1.0';
 export const WEBP_OPTIONS = Object.freeze({
   quality: 80,
   alphaQuality: 100,

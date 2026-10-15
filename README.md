@@ -1,4 +1,4 @@
-# WebP Folder Converter Ver.1
+# WebP Folder Converter v1.1.0
 
 Windows 11のエクスプローラーで選択したフォルダ直下にあるPNG・JPEG画像を、同じフォルダへWebPとして一括保存する個人向けツールです。元画像を変更せず、既存のWebPを上書きしません。
 
@@ -27,26 +27,25 @@ Windows 11のエクスプローラーで選択したフォルダ直下にあるP
 
 ## インストール
 
-重要: ソースコードのフォルダではなく、`scripts\build-release.ps1` が生成した `dist\WebPFolderConverter` 配布フォルダから実行してください。
-
-1. 配布フォルダをローカルPCへ展開します。
-2. 配布フォルダでPowerShellを開きます。
-3. 次を実行します。
+1. GitHub Releasesから `WebP-Converter-Setup-1.1.0.exe` と同名の `.sha256` ファイルを取得します。
+2. 必要に応じてPowerShellでSHA-256を確認します。
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1
+Get-FileHash .\WebP-Converter-Setup-1.1.0.exe -Algorithm SHA256
+Get-Content .\WebP-Converter-Setup-1.1.0.exe.sha256
 ```
 
-インストーラーは以下を行います。
+3. EXEをダブルクリックし、ウィザードの案内に従います。管理者権限や追加のNode.js/npmは不要です。
 
-1. Windows 11 x64であることを確認します。
-2. `release-manifest.json` に記録された全配布ファイルのSHA-256を検証します。
-3. `%LOCALAPPDATA%\Programs\WebPFolderConverter` のステージング領域へ配置します。
-4. 同梱Node.jsで1ピクセルのWebP変換自己診断を行います。
-5. 成功後にアプリを切り替えます。
-6. HKCUの所有キーだけに右クリックメニューを登録し、登録値を読み戻します。
+インストール先は `%LOCALAPPDATA%\Programs\WebPFolderConverter` に固定されています。インストール完了後、フォルダの従来型右クリックメニューへ「WebPに変換」が追加されます。
 
-更新も新しい配布フォルダから同じコマンドを再実行します。新版の自己診断前に動作中の版を置き換えません。
+v1.1.0のEXEはAuthenticode未署名です。Windows SmartScreenで「不明な発行元」と表示される場合があります。GitHub Releasesの配布元とSHA-256が一致することを確認してから実行してください。
+
+## v1.0.0からの更新
+
+v1.0.0を手動でアンインストールする必要はありません。v1.0.0が既定の場所へ正しく導入されている状態で、v1.1.0のEXEを実行してください。
+
+セットアップは既存の製品バージョン、必須ファイル、右クリックメニュー登録を確認し、v1.0.0を一時バックアップしてから更新します。失敗または中断した場合は旧ファイルとレジストリ登録を復元します。内容を正規のv1.0.0として確認できない場合は、安全のため変更前に中止します。
 
 ## 使い方
 
@@ -68,19 +67,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1
 
 ## アンインストール
 
-元の配布フォルダで次を実行します。
+Windows 11の「設定」→「アプリ」→「インストールされているアプリ」から「WebP Folder Converter 1.1.0」を選び、アンインストールします。
 
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\uninstall.ps1
-```
+アンインストーラーが削除するものは、Inno Setupが管理するアプリファイルとHKCUの `WebPFolderConverter` 右クリックメニューキーだけです。元画像、生成済みWebP、案件内ファイル、PCへ別途導入されたNode.jsには触れません。
 
-ログを残す場合は次を実行します。
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\uninstall.ps1 -KeepLogs
-```
-
-アンインストーラーが削除するものは、HKCUの `WebPFolderConverter` キー、固定インストール先、既定では本ツールのログ領域だけです。元画像、生成済みWebP、案件内ファイル、PCへ別途導入されたNode.jsには触れません。
+変換ログは `%LOCALAPPDATA%\WebPFolderConverter\logs` に保持されます。不要になったログは、内容を確認してから利用者自身で削除してください。
 
 ## 開発と自動テスト
 
@@ -102,15 +93,21 @@ node .\src\convert-webp.mjs --folder 'C:\path\to\images'
 
 右クリック表示、結果ダイアログ、UAC非表示、PATHにNode.jsがない環境、OneDrive、UNC共有、アンインストールはWindows 11実機で手動確認してください。テストのためにExplorerを強制終了する処理はありません。
 
-## 自己完結リリースの作成
+## 自己完結リリースとインストーラーの作成
 
-開発用PCで次を実行します。この工程だけはNode.js公式配布物とnpm依存を取得するため、ネットワーク接続が必要です。
+開発用PCにNode.js/npmとInno Setup 7.1.0 64-bitを用意し、次を実行します。この工程だけはNode.js公式配布物とnpm依存を取得するため、ネットワーク接続が必要です。
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-release.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-installer.ps1
 ```
 
-出力先:
+ISCC.exeが標準の場所にない場合:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-installer.ps1 -IsccPath 'C:\path\to\ISCC.exe'
+```
+
+中間ペイロード:
 
 ```text
 dist\WebPFolderConverter\
@@ -129,6 +126,15 @@ dist\WebPFolderConverter\
 
 ビルドスクリプトはNode.js公式の `SHASUMS256.txt` でZIPを検証し、固定した `package-lock.json` からWindows x64用の本番依存だけを復元します。同梱Node.jsによるSharp自己診断の後、全配布ファイルのSHA-256を `release-manifest.json` へ記録します。
 
+最終成果物:
+
+```text
+dist\installer\WebP-Converter-Setup-1.1.0.exe
+dist\installer\WebP-Converter-Setup-1.1.0.exe.sha256
+```
+
+ビルド処理はInno Setupのバージョン、EXEのファイルバージョン、未署名状態、SHA-256を検証します。生成物はGitへコミットせず、動作確認後にGitHub Releasesへ添付します。
+
 ## 終了コード
 
 - `0`: 致命的エラーなし、個別変換失敗なし。スキップは許容します。
@@ -144,6 +150,8 @@ dist\WebPFolderConverter\
 - シンボリックリンクを追跡せず、サブフォルダを列挙しません。
 - `Invoke-Expression`、`eval`、ファイル名を埋め込んだ動的コマンドを使用しません。
 - インストール先、ログ、レジストリはユーザー単位です。HKLMや管理者権限を使用しません。
+- v1.0.0からの更新前に旧アプリとレジストリ値を退避し、未完了の移行は次回セットアップ時に復旧します。
+- アンインストールではワイルドカードによるインストール先の一括削除を行いません。
 - 実行時の通信、テレメトリ、自動更新を行いません。
 
 ## 実装上の決定

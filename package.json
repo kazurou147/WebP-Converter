@@ -1,6 +1,6 @@
 {
   "name": "webp-folder-converter",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Windows 11 Explorer folder context-menu WebP converter",
   "type": "module",
@@ -9,7 +9,9 @@
   },
   "scripts": {
     "test": "node --test --test-concurrency=1",
-    "self-check": "node src/self-check.mjs"
+    "self-check": "node src/self-check.mjs",
+    "build:release": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-release.ps1",
+    "build:installer": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-installer.ps1"
   },
   "dependencies": {
     "sharp": "0.35.5"

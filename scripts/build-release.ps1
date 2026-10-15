@@ -5,6 +5,19 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $ProjectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$Package = Get-Content -LiteralPath (Join-Path $ProjectRoot 'package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$LockText = Get-Content -LiteralPath (Join-Path $ProjectRoot 'package-lock.json') -Raw -Encoding UTF8
+$AppVersion = [string]$Package.version
+$SharpVersion = [string]$Package.dependencies.sharp
+$LockVersions = [regex]::Matches($LockText, '(?m)^\s+"version"\s*:\s*"([^"]+)"')
+if ($LockVersions.Count -lt 2 -or
+    $LockVersions[0].Groups[1].Value -ne $AppVersion -or
+    $LockVersions[1].Groups[1].Value -ne $AppVersion) {
+    throw "package.jsonとpackage-lock.jsonのバージョンが一致しません: $AppVersion"
+}
+if ($AppVersion -ne '1.1.0') {
+    throw "このブランチのリリースバージョンは1.1.0である必要があります: $AppVersion"
+}
 $DistRoot = Join-Path $ProjectRoot 'dist'
 $ReleaseRoot = Join-Path $DistRoot 'WebPFolderConverter'
 $DownloadRoot = Join-Path $DistRoot '.downloads'
@@ -104,10 +117,10 @@ $Files = Get-ChildItem -LiteralPath $ReleaseRoot -File -Recurse | Where-Object {
 } | Sort-Object path
 $Manifest = [ordered]@{
     product = 'WebP Folder Converter'
-    version = '1.0.0'
+    version = $AppVersion
     target = 'win32-x64'
     nodeVersion = $NodeVersion
-    sharpVersion = '0.35.5'
+    sharpVersion = $SharpVersion
     generatedAt = [DateTime]::UtcNow.ToString('o')
     manifestExcludesItself = $true
     files = @($Files)
